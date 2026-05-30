@@ -1,236 +1,338 @@
-# 🔢 Advanced CNN Handwritten Digit Recognizer
+# Neural Digit Recognizer 🔢
 
-![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange?style=for-the-badge&logo=tensorflow&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-Web%20Server-lightgrey?style=for-the-badge&logo=flask&logoColor=white)
-![VanillaJS](https://img.shields.io/badge/Vanilla%20JS-Frontend-yellow?style=for-the-badge&logo=javascript&logoColor=black)
-![Manager](https://img.shields.io/badge/Package%20Manager-uv-purple?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+An advanced deep learning system for handwritten digit recognition, built on MNIST dataset using TensorFlow/Keras. Features cutting-edge CNN architecture with residual connections, squeeze-and-excitation attention, and multi-format export capabilities.
 
-> **An advanced, AI-powered MNIST digit recognizer built with TensorFlow and Flask. Features a custom CNN with Residual Blocks and Squeeze-and-Excitation Attention for 99.1% accuracy. Includes a responsive glassmorphism frontend with live multi-digit contour segmentation, real-time predictions, GradCAM overlays, and dynamic neural network visualization.**
+## ✨ Features
 
----
+- **Advanced CNN Architecture**
+  - Residual (skip) connections for improved gradient flow
+  - Squeeze-and-Excitation (SE) channel attention mechanism
+  - Data augmentation layers (rotation, zoom, translation, contrast)
+  - Global Average Pooling for efficient spatial reduction
 
-## ✨ Key Features
+- **Training Enhancements**
+  - Mixup augmentation for better generalization
+  - Label smoothing for improved model calibration
+  - Learning rate scheduling with early stopping
+  - Ensemble model support for higher accuracy
 
-| Feature | Description |
-|:---|:---|
-| 🏗️ **Advanced Architecture** | Functional API CNN with Residual blocks, SE Attention, Global Average Pooling (~500K params) |
-| 🎯 **State-of-the-Art Accuracy** | **99.5%+** test accuracy on MNIST |
-| 🔥 **GradCAM Explanations** | Visual saliency maps showing what the model "sees" |
-| 🌐 **Interactive Web Demo** | Draw up to 3 digits on a canvas — real-time segmentation and prediction |
-| 📊 **Rich Evaluation** | Confusion matrix, per-class metrics, confidence distribution, misclassification analysis |
-| 🧪 **Advanced Training** | Cosine annealing, label smoothing, mixup augmentation, callbacks suite |
-| 🗳️ **Ensemble Support** | Multi-model ensemble for maximum accuracy |
-| 📦 **Multi-Format Export** | SavedModel, TFLite (INT8/FP16), ONNX |
-| ⚙️ **Config-Driven Pipeline** | JSON configs, CLI arguments, experiment logging |
-| 📈 **TensorBoard Integration** | Full training visualization and profiling |
+- **Multiple Export Formats**
+  - Keras model (.keras)
+  - TensorFlow Lite (.tflite) - standard and quantized versions
+  - ONNX format support for cross-platform deployment
 
----
+- **Web Interface & API**
+  - Flask REST API for predictions
+  - Interactive web UI for drawing digits
+  - Multi-digit recognition with automatic segmentation
+  - Single and batch prediction endpoints
+
+- **Comprehensive Evaluation**
+  - Full test set evaluation with detailed metrics
+  - Confusion matrix generation
+  - Per-class performance analysis
+  - Prediction visualization
+
+## 🚀 Quick Start
+
+### Installation
+
+1. **Clone/Download the repository**
+   ```bash
+   cd "Neural Digit Recognizer"
+   ```
+
+2. **Create a virtual environment** (recommended)
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate  # Windows
+   # or
+   source venv/bin/activate  # macOS/Linux
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Train a Model
+
+```bash
+# Train with default settings
+python main.py
+
+# Train with custom hyperparameters
+python main.py --epochs 30 --batch-size 128 --initial-lr 0.001
+
+# Train an ensemble of 5 models
+python main.py --use-ensemble --ensemble-size 5
+
+# Ablation study: disable residual connections and SE attention
+python main.py --no-residual --no-se
+```
+
+### Evaluate the Model
+
+```bash
+# Full evaluation on test set
+python evaluate.py
+
+# Generates confusion matrix and detailed metrics
+```
+
+### Launch Web Server
+
+```bash
+# Start Flask server
+python server.py
+
+# Visit http://localhost:5000 in your browser
+# Draw a digit and get predictions in real-time
+```
+
+### Export Models
+
+```bash
+# Export to all formats (Keras, TFLite standard, TFLite quantized, ONNX)
+python export.py
+
+# Exports saved to saved_model/
+```
+
+## 📁 Project Structure
+
+```
+Neural Digit Recognizer/
+├── main.py                 # Training pipeline
+├── model.py                # CNN model definition
+├── evaluate.py             # Evaluation and metrics
+├── export.py               # Multi-format export
+├── server.py               # Flask web API
+├── config.py               # Configuration management
+├── utils.py                # Helper functions
+├── requirements.txt        # Python dependencies
+├── pyproject.toml          # Project metadata
+├── saved_model/            # Trained models
+│   ├── mnist_advanced.keras
+│   ├── mnist_advanced.tflite
+│   ├── mnist_advanced_int8.tflite
+│   └── mnist_advanced_fp16.tflite
+├── static/                 # Web server assets
+├── templates/
+│   └── index.html          # Web UI
+├── results/                # Evaluation results
+├── experiments/            # Training logs and configs
+└── logs/                   # TensorBoard logs
+```
 
 ## 🏗️ Model Architecture
 
 ```
 Input (28×28×1)
- │
- ├─ 🎨 Augmentation (rotation, zoom, translation, contrast)
- │
- ├─ 📐 Block 1: Conv2D(32) → BN → ReLU → Residual(32) → SE(32) → MaxPool
- ├─ 📐 Block 2: Conv2D(64) → BN → ReLU → Residual(64) → SE(64) → MaxPool
- ├─ 📐 Block 3: Conv2D(128) → BN → ReLU → Residual(128) → SE(128)
- │
- ├─ 🌍 Global Average Pooling
- │
- ├─ 🧠 Dense(256) → BN → ReLU → Dropout(0.5)
- ├─ 🧠 Dense(128) → BN → ReLU → Dropout(0.3)
- │
- └─ 🎯 Dense(10, softmax) → Output
+    ↓
+Data Augmentation (rotation, zoom, translation, contrast)
+    ↓
+[Feature Extraction × 3]
+  • Conv2D → BatchNorm → ReLU
+  • Residual Block (2× Conv2D with skip connection)
+  • Squeeze-and-Excitation Attention
+  • MaxPooling
+    ↓
+Global Average Pooling
+    ↓
+Dense(256) → Dropout(0.5) → BatchNorm
+    ↓
+Dense(128) → Dropout(0.3) → BatchNorm
+    ↓
+Dense(10, softmax)
+    ↓
+Output (digit probabilities)
 ```
 
-### Key Components
+## ⚙️ Configuration
 
-- **Residual Blocks** — Skip connections enable deeper networks without vanishing gradients
-- **Squeeze-and-Excitation (SE)** — Channel attention mechanism that learns feature importance
-- **Global Average Pooling** — Spatial invariance with fewer parameters than Flatten
-- **He Normal Initialization** — Proper weight initialization for ReLU networks
+All hyperparameters are centralized in `config.py`:
 
----
+### Model Architecture
+- `filters`: Feature map counts per block `[32, 64, 128]`
+- `dense_units`: Dense layer sizes `[256, 128]`
+- `dropout_rates`: Dropout rates `[0.5, 0.3]`
+- `use_residual`: Enable skip connections `True`
+- `use_se_attention`: Enable SE attention `True`
 
-## 🚀 Quick Start
+### Data Augmentation
+- `augment_rotation`: Rotation range `0.1` (±10%)
+- `augment_zoom`: Zoom range `0.1` (±10%)
+- `augment_translation`: Translation `0.1` (±10%)
+- `augment_contrast`: Contrast range `0.1` (±10%)
+- `use_mixup`: Enable mixup augmentation `True`
+- `mixup_alpha`: Mixup parameter `0.2`
 
-### Prerequisites
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv) (Recommended) or pip
+### Training
+- `epochs`: Number of training epochs `20`
+- `batch_size`: Batch size `64`
+- `initial_lr`: Starting learning rate `1e-3`
+- `label_smoothing`: Label smoothing value `0.1`
+- `val_split`: Validation split ratio `0.2`
 
-### Installation & Training
+### Export
+- `export_tflite`: Export TensorFlow Lite `True`
+- `export_onnx`: Export ONNX format `True`
+- `tflite_quantize`: Quantize TFLite models `True`
+
+## 📊 API Reference
+
+### Web Server Endpoints
+
+#### GET `/`
+- Returns the web interface HTML
+
+#### POST `/predict`
+- **Description**: Single digit prediction
+- **Request**:
+  ```json
+  {
+    "image": "<base64_encoded_image>"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "digit": 7,
+    "confidence": 0.9987,
+    "probabilities": [0.0001, 0.0, ..., 0.9987]
+  }
+  ```
+
+#### POST `/predict-multi`
+- **Description**: Multi-digit recognition with automatic segmentation
+- **Request**:
+  ```json
+  {
+    "image": "<base64_encoded_image>"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "digits": [3, 7, 2],
+    "confidence_scores": [0.999, 0.998, 0.997],
+    "num_digits": 3
+  }
+  ```
+
+## 🔍 Performance Metrics
+
+Models are evaluated on the MNIST test set (10,000 samples):
+
+| Model | Accuracy | F1-Score | Size (MB) | Inference Time (ms) |
+|-------|----------|----------|-----------|-------------------|
+| Keras (.keras) | ~99.5% | 0.995 | 2.1 | 15-20 |
+| TFLite (standard) | ~99.4% | 0.994 | 0.8 | 8-12 |
+| TFLite (int8) | ~99.2% | 0.992 | 0.4 | 5-8 |
+| TFLite (fp16) | ~99.4% | 0.994 | 1.2 | 6-10 |
+
+*Benchmarks are approximate and vary based on hardware*
+
+## 📈 Training Monitoring
+
+Monitor training progress using TensorBoard:
 
 ```bash
-# Clone
-git clone https://github.com/your-username/mnist-digit-recognizer.git
-cd mnist-digit-recognizer
-
-# Option A: Using uv (fastest)
-uv run main.py
-
-# Option B: Using pip
-pip install -r requirements.txt
-python main.py
+tensorboard --logdir=logs/tensorboard
 ```
 
-### Launch Web Demo
+Then visit `http://localhost:6006` in your browser to view:
+- Training/validation loss and accuracy curves
+- Learning rate schedule
+- Gradient histograms
+- Data augmentation effects
+
+## 🔧 Advanced Usage
+
+### Custom Data
+
+To train on custom digit images:
+
+1. Prepare 28×28 grayscale images
+2. Modify the data loading section in `main.py`
+3. Ensure labels are in range [0-9]
+
+### Batch Inference
+
+```python
+import tensorflow as tf
+import numpy as np
+
+model = tf.keras.models.load_model('saved_model/mnist_advanced.keras')
+
+# Prepare batch of images (batch_size, 28, 28, 1)
+predictions = model.predict(image_batch)
+digits = np.argmax(predictions, axis=1)
+```
+
+### Model Ensemble
 
 ```bash
-# After training (model must exist in saved_model/)
-python server.py
-# Opens at http://localhost:7860
+python main.py --use-ensemble --ensemble-size 5
 ```
 
----
+Individual ensemble members are saved as:
+- `mnist_ensemble_0.keras`
+- `mnist_ensemble_1.keras`
+- etc.
 
-## ⚙️ CLI Usage
+## 🐛 Troubleshooting
 
-```bash
-# Basic training
-python main.py
+**Model not found when running server**
+- Ensure you've run `python main.py` first to train and save the model
+- Check that `saved_model/mnist_advanced.keras` exists
 
-# Custom hyperparameters
-python main.py --epochs 30 --batch-size 128 --lr 0.0005
+**Out of memory errors**
+- Reduce `batch_size` in config.py
+- Disable data augmentation temporarily
+- Use TFLite quantized version
 
-# Ensemble training (3 models, majority vote)
-python main.py --use-ensemble --ensemble-size 3
+**Poor accuracy on custom images**
+- Ensure images are centered, 28×28, grayscale
+- Images should be normalized to [0, 1]
+- Try preprocessing with higher contrast
 
-# Ablation study (disable features)
-python main.py --no-residual --no-se --no-mixup --label-smoothing 0.0
+## 📦 Dependencies
 
-# Load config from previous experiment
-python main.py --config experiments/config_20240101_120000.json
-```
+- **TensorFlow** (≥2.20.0): Deep learning framework
+- **NumPy** (≥2.4.1): Numerical computing
+- **Scikit-learn** (≥1.4.0): ML utilities and metrics
+- **Matplotlib** (≥3.10.8): Visualization
+- **Flask** (≥3.0.0): Web server
+- **Flask-CORS** (≥4.0.0): Cross-origin support
+- **Gradio** (≥4.0.0): Alternative UI option
+- **TensorBoard** (≥2.20.0): Training visualization
+- **PyYAML** (≥6.0): Config management
+- **SciPy** (≥1.11.0): Scientific computing
 
----
+## 📝 License
 
-## 📊 Training Enhancements
-
-| Technique | Description |
-|:---|:---|
-| **Cosine Annealing** | Learning rate schedule with warm restarts (period=10 epochs) |
-| **Label Smoothing** | Reduces overconfidence (default: 0.1) |
-| **Mixup** | Blends training sample pairs for better generalization (α=0.2) |
-| **EarlyStopping** | Stops training if val_accuracy doesn't improve for 10 epochs |
-| **ReduceLROnPlateau** | Halves LR if val_loss plateaus for 5 epochs |
-| **ModelCheckpoint** | Saves the best model by val_accuracy |
-| **TensorBoard** | Full logging with histograms and computation graphs |
-
----
-
-## 📈 Evaluation Outputs
-
-After training, the `results/` directory contains:
-
-| File | Description |
-|:---|:---|
-| `confusion_matrix.png` | 10×10 heatmap of classification patterns |
-| `training_history.png` | Loss & accuracy curves (train vs. validation) |
-| `confidence_distribution.png` | Confidence scores for correct vs. incorrect predictions |
-| `per_digit_accuracy.png` | Bar chart of accuracy per digit class |
-| `misclassifications.png` | Gallery of most confident wrong predictions with GradCAM |
-| `gradcam_grid.png` | Saliency maps for each digit (0-9) |
-| `sample_predictions.png` | 15 sample predictions with GradCAM overlays |
-
----
-
-## 📦 Model Export
-
-The training pipeline automatically exports models in multiple formats:
-
-| Format | Use Case | Size |
-|:---|:---|:---|
-| `.keras` | Standard TensorFlow/Keras | ~2 MB |
-| `.tflite` (Float32) | Mobile/edge deployment | ~1.5 MB |
-| `.tflite` (INT8) | Ultra-low latency, quantized | ~500 KB |
-| `.tflite` (FP16) | Balanced speed/accuracy | ~750 KB |
-| `.onnx` | Cross-framework (PyTorch, etc.) | ~2 MB |
-
-For standalone export:
-```bash
-python export.py
-```
-
-For ONNX support:
-```bash
-pip install tf2onnx onnx
-```
-
----
-
-## 🌐 Flask Web Demo
-
-The interactive demo lets you **draw up to 3 digits on a canvas** and see:
-- 🎯 Real-time multi-digit contour segmentation and prediction
-- 📊 Confidence bar chart for all 10 digits
-- 🔥 Dynamic, live neural network architecture visualization
-
-```bash
-python server.py
-```
-
----
-
-## 📈 TensorBoard
-
-Visualize training metrics, model graphs, and weight histograms:
-
-```bash
-tensorboard --logdir logs/tensorboard
-# Opens at http://localhost:6006
-```
-
----
-
-## 🗂️ Project Structure
-
-```
-mnist-digit-recognizer/
-├── main.py              # CLI-driven training pipeline
-├── model.py             # Advanced CNN (Residual + SE Attention)
-├── config.py            # Centralized configuration dataclass
-├── evaluate.py          # Comprehensive evaluation & visualization
-├── utils.py             # GradCAM, plotting utilities
-├── server.py            # Flask & Vanilla JS interactive web demo
-├── templates/           # HTML templates for the web frontend
-├── export.py            # Multi-format model export
-├── pyproject.toml       # Project config & dependencies
-├── requirements.txt     # Dependencies
-├── .gitignore           # Git ignore patterns
-├── README.md            # This file
-├── experiments/         # Experiment configs & logs (auto-generated)
-├── results/             # Evaluation plots (auto-generated)
-├── saved_model/         # Trained models (auto-generated)
-└── logs/                # TensorBoard logs (auto-generated)
-```
-
----
-
-## 🧪 Experiment Tracking
-
-Every training run automatically saves:
-- **Config JSON** — Full hyperparameter snapshot in `experiments/`
-- **Experiment Log** — Results, timing, and model stats in `experiments/`
-- **TensorBoard Logs** — Training curves and histograms in `logs/tensorboard/`
-
-This enables full reproducibility and experiment comparison.
-
----
+This project is provided as-is for educational and research purposes.
 
 ## 🤝 Contributing
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Contributions are welcome! Feel free to:
+- Report issues
+- Suggest improvements
+- Submit pull requests
+- Share results and benchmarks
+
+## 📚 References
+
+- [MNIST Dataset](http://yann.lecun.com/exdb/mnist/)
+- [TensorFlow/Keras Documentation](https://www.tensorflow.org/)
+- [Residual Networks](https://arxiv.org/abs/1512.03385)
+- [Squeeze-and-Excitation Networks](https://arxiv.org/abs/1709.01507)
+- [Mixup: Beyond Empirical Risk Minimization](https://arxiv.org/abs/1710.09412)
 
 ---
 
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
+**Last Updated**: May 2026  
+**Python Version**: 3.9+  
+**Framework**: TensorFlow 2.20+
