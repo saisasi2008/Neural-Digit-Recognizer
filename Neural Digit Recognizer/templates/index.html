@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST Neural Digit Recognizer</title>
+    <meta name="description" content="Advanced AI-powered digit recognition with real-time neural network inference, powered by a deep CNN with Residual and Squeeze-and-Excitation attention blocks.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           CSS RESET & VARIABLES
+           ═══════════════════════════════════════════════════════════════ */
+        *, *::before, *::after {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #050510;
+            --bg-secondary: #0a0a1a;
+            --bg-card: rgba(15, 15, 35, 0.6);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text-primary: #e8eaf6;
+            --text-secondary: #8b8fad;
+            --text-muted: #5a5e7a;
+            --accent-blue: #6366f1;
+            --accent-purple: #a855f7;
+            --accent-pink: #ec4899;
+            --accent-cyan: #22d3ee;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --glow-blue: rgba(99, 102, 241, 0.4);
+            --glow-purple: rgba(168, 85, 247, 0.4);
+            --glow-green: rgba(16, 185, 129, 0.5);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 8px;
+            --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           ANIMATED BACKGROUND
+           ═══════════════════════════════════════════════════════════════ */
+        #particles-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .bg-gradient-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 {
+            width: 600px; height: 600px;
+            background: var(--accent-blue);
+            top: -200px; left: -100px;
+            animation: orbFloat1 20s ease-in-out infinite;
+        }
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: var(--accent-purple);
+            bottom: -150px; right: -100px;
+            animation: orbFloat2 25s ease-in-out infinite;
+        }
+        .orb-3 {
+            width: 400px; height: 400px;
+            background: var(--accent-pink);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: orbFloat3 18s ease-in-out infinite;
+        }
+        @keyframes orbFloat1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(80px, 50px) scale(1.1); }
+            66% { transform: translate(-40px, 80px) scale(0.9); }
+        }
+        @keyframes orbFloat2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-60px, -40px) scale(1.15); }
+            66% { transform: translate(50px, -70px) scale(0.95); }
+        }
+        @keyframes orbFloat3 {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.1; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.2; }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           LAYOUT
+           ═══════════════════════════════════════════════════════════════ */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 24px 60px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           HEADER
+           ═══════════════════════════════════════════════════════════════ */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            perspective: 800px;
+        }
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--accent-cyan);
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+            letter-spacing: 0.5px;
+        }
+        .header-badge .pulse-dot {
+            width: 8px; height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #e8eaf6 0%, var(--accent-blue) 40%, var(--accent-purple) 60%, var(--accent-pink) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: titleShimmer 6s ease-in-out infinite;
+            background-size: 200% 200%;
+        }
+        @keyframes titleShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           STATS BAR
+           ═══════════════════════════════════════════════════════════════ */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 36px;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+        .stat-item:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
+        }
+        .stat-icon {
+            font-size: 1.3rem;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .stat-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MAIN GRID
+           ═══════════════════════════════════════════════════════════════ */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           GLASS CARD
+           ═══════════════════════════════════════════════════════════════ */
+        .glass-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-3px);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-glass);
+            background: rgba(255, 255, 255, 0.015);
+        }
+        .card-header-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        .card-header-icon.blue { background: rgba(99, 102, 241, 0.15); }
+        .card-header-icon.green { background: rgba(16, 185, 129, 0.15); }
+        .card-header-icon.purple { background: rgba(168, 85, 247, 0.15); }
+        .card-header-icon.pink { background: rgba(236, 72, 153, 0.15); }
+
+        .card-header h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        .card-body {
+            padding: 24px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           DRAWING CANVAS
+           ═══════════════════════════════════════════════════════════════ */
+        .canvas-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        #draw-canvas {
+            background: #0a0a14;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--border-glass);
+            cursor: crosshair;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            touch-action: none;
+            max-width: 100%;
+            aspect-ratio: 1;
+        }
+        #draw-canvas:hover, #draw-canvas.drawing {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 30px var(--glow-blue), inset 0 0 30px rgba(99, 102, 241, 0.05);
+        }
+        .canvas-hint {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Brush size slider */
+        .brush-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            background: var(--bg-glass);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-glass);
+        }
+        .brush-controls label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .brush-controls input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: var(--border-glass);
+            border-radius: 2px;
+            outline: none;
+        }
+        .brush-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px; height: 16px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--glow-blue);
+        }
+        .brush-size-preview {
+            width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .brush-dot {
+            background: white;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           ACTION BUTTONS
+           ═══════════════════════════════════════════════════════════════ */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.2px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        .btn:hover::before { left: 100%; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 15px var(--glow-blue);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--glow-purple);
+        }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn-secondary {
+            background: var(--bg-glass);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-glass);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PREDICTION HERO
+           ═══════════════════════════════════════════════════════════════ */
+        .prediction-hero {
+            text-align: center;
+            padding: 30px 20px;
+            perspective: 600px;
+        }
+        .prediction-digit-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        .prediction-digit {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 7rem;
+            font-weight: 900;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 40px var(--glow-blue));
+            background-size: 200% 200%;
+            animation: digitPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), digitGradient 3s ease-in-out infinite;
+        }
+        @keyframes digitPop {
+            0% { transform: scale(0.3) rotateY(90deg); opacity: 0; }
+            60% { transform: scale(1.1) rotateY(-10deg); }
+            100% { transform: scale(1) rotateY(0deg); opacity: 1; }
+        }
+        @keyframes digitGradient {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .prediction-digit-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140px; height: 140px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--accent-blue);
+            border-right-color: var(--accent-purple);
+            animation: ringRotate 3s linear infinite;
+            opacity: 0.4;
+        }
+        .prediction-digit-ring.ring-2 {
+            width: 170px; height: 170px;
+            border-top-color: var(--accent-pink);
+            border-left-color: var(--accent-cyan);
+            animation-direction: reverse;
+            animation-duration: 4s;
+            opacity: 0.2;
+        }
+        @keyframes ringRotate { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        .prediction-confidence {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .prediction-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .prediction-placeholder {
+            padding: 50px 20px;
+            text-align: center;
+        }
+        .placeholder-icon {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+            opacity: 0.3;
+            animation: placeholderFloat 3s ease-in-out infinite;
+        }
+        @keyframes placeholderFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .placeholder-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CONFIDENCE BARS
+           ═══════════════════════════════════════════════════════════════ */
+        .confidence-grid {
+            display: grid;
+            gap: 8px;
+        }
+        .conf-row {
+            display: grid;
+            grid-template-columns: 30px 1fr 55px;
+            align-items: center;
+            gap: 10px;
+        }
+        .conf-digit {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+        .conf-digit.highlight {
+            color: var(--accent-green);
+            text-shadow: 0 0 10px var(--glow-green);
+        }
+        .conf-bar-track {
+            height: 28px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .conf-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            min-width: 0;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .conf-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            animation: barShine 2s ease-in-out infinite;
+        }
+        @keyframes barShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .conf-bar-fill.top {
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            box-shadow: 0 0 12px var(--glow-blue);
+        }
+        .conf-bar-fill.other {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .conf-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-align: right;
+            transition: var(--transition);
+        }
+        .conf-value.highlight {
+            color: var(--accent-green);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           TOP 3 CHIPS
+           ═══════════════════════════════════════════════════════════════ */
+        .top3-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: center;
+        }
+        .top3-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+            animation: chipSlide 0.5s ease-out both;
+        }
+        .top3-chip:nth-child(1) { animation-delay: 0.1s; background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); color: #a5b4fc; }
+        .top3-chip:nth-child(2) { animation-delay: 0.2s; background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.2); color: #c4b5fd; }
+        .top3-chip:nth-child(3) { animation-delay: 0.3s; background: rgba(236, 72, 153, 0.06); border-color: rgba(236, 72, 153, 0.15); color: #f9a8d4; }
+        @keyframes chipSlide {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           NEURAL NETWORK ANIMATION
+           ═══════════════════════════════════════════════════════════════ */
+        .nn-container {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #nn-canvas {
+            border-radius: var(--radius-md);
+            width: 100%;
+            height: auto;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FOOTER
+           ═══════════════════════════════════════════════════════════════ */
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            padding: 24px;
+            border-top: 1px solid var(--border-glass);
+        }
+        .footer p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+        .footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+        .tech-badges {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .tech-badge {
+            padding: 4px 12px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+        .tech-badge:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-secondary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 2rem; }
+            .stats-bar { gap: 12px; }
+            .stat-item { padding: 8px 14px; }
+            #draw-canvas { width: 280px !important; height: 280px !important; }
+            .prediction-digit { font-size: 5rem; }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SPINNER
+           ═══════════════════════════════════════════════════════════════ */
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MULTI-DIGIT STYLES
+           ═══════════════════════════════════════════════════════════════ */
+        .multi-digit-hero {
+            text-align: center;
+            padding: 24px 16px;
+        }
+        .multi-digit-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 4.5rem;
+            font-weight: 900;
+            letter-spacing: 8px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% 200%;
+            animation: digitPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), digitGradient 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 30px var(--glow-blue));
+            margin-bottom: 8px;
+        }
+        .multi-digit-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 20px;
+        }
+        .digit-cards-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .digit-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            min-width: 90px;
+            text-align: center;
+            animation: chipSlide 0.4s ease-out both;
+            transition: var(--transition);
+        }
+        .digit-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.15);
+        }
+        .digit-card-pos {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .digit-card-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+        .digit-card-conf {
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .digit-card:nth-child(1) .digit-card-value { color: #a5b4fc; }
+        .digit-card:nth-child(2) .digit-card-value { color: #c4b5fd; }
+        .digit-card:nth-child(3) .digit-card-value { color: #f9a8d4; }
+        .digit-card:nth-child(1) { animation-delay: 0.1s; }
+        .digit-card:nth-child(2) { animation-delay: 0.2s; }
+        .digit-card:nth-child(3) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <!-- Background effects -->
+    <canvas id="particles-canvas"></canvas>
+    <div class="bg-gradient-orb orb-1"></div>
+    <div class="bg-gradient-orb orb-2"></div>
+    <div class="bg-gradient-orb orb-3"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-badge">
+                <span class="pulse-dot"></span>
+                <span>AI-POWERED INFERENCE</span>
+            </div>
+            <h1>Neural Digit Recognizer</h1>
+            <p>Draw up to 3 digits on the canvas. Our advanced CNN with residual connections and attention mechanisms will segment and identify each digit in real-time.</p>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-icon">🎯</span>
+                <div>
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value">99.07%</div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">🧠</span>
+                <div>
+                    <div class="stat-label">Parameters</div>
+                    <div class="stat-value">557K</div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">⚡</span>
+                <div>
+                    <div class="stat-label">Inference</div>
+                    <div class="stat-value">&lt;50ms</div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">🏗️</span>
+                <div>
+                    <div class="stat-label">Architecture</div>
+                    <div class="stat-value">ResCNN + SE</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- LEFT: Drawing Panel -->
+            <div class="glass-card" id="draw-panel">
+                <div class="card-header">
+                    <div class="card-header-icon blue">✏️</div>
+                    <h2>Drawing Canvas</h2>
+                </div>
+                <div class="card-body">
+                    <div class="brush-controls">
+                        <label>🖌️ Brush</label>
+                        <input type="range" id="brush-size" min="8" max="40" value="18">
+                        <div class="brush-size-preview">
+                            <div class="brush-dot" id="brush-dot"></div>
+                        </div>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="draw-canvas" width="336" height="336"></canvas>
+                    </div>
+                    <p class="canvas-hint">Draw 1–3 digits with spacing between them • White ink on dark canvas</p>
+                    <div class="action-buttons" style="margin-top:16px;">
+                        <button class="btn btn-primary" id="predict-btn" onclick="predictDigit()">
+                            <span>🔍</span> <span>Recognize</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearCanvas()">
+                            <span>🗑️</span> <span>Clear</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Results Panel -->
+            <div style="display:flex; flex-direction:column; gap:28px;">
+                <!-- Prediction Card -->
+                <div class="glass-card" id="prediction-card">
+                    <div class="card-header">
+                        <div class="card-header-icon green">🎯</div>
+                        <h2>Prediction</h2>
+                    </div>
+                    <div class="card-body" id="prediction-area">
+                        <div class="prediction-placeholder">
+                            <div class="placeholder-icon">✍️</div>
+                            <p class="placeholder-text">Draw a digit on the canvas<br>and click <strong>Recognize</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confidence Card -->
+                <div class="glass-card" id="confidence-card">
+                    <div class="card-header">
+                        <div class="card-header-icon purple">📊</div>
+                        <h2>Confidence Distribution</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="confidence-grid" id="confidence-bars">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Neural Network Animation -->
+        <div class="glass-card" style="margin-top:28px;">
+            <div class="card-header">
+                <div class="card-header-icon pink">🔬</div>
+                <h2>Live Neural Network Visualization</h2>
+            </div>
+            <div class="nn-container">
+                <canvas id="nn-canvas" width="1100" height="240"></canvas>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>🧠 Advanced CNN with Residual Connections + Squeeze-and-Excitation Attention<br>
+               Built with TensorFlow/Keras • Flask • Vanilla JS</p>
+            <div style="font-size: 1.4rem; font-weight: 800; margin-top: 12px; letter-spacing: 1px; filter: drop-shadow(0 0 8px rgba(188, 140, 255, 0.4)); background: linear-gradient(135deg, #e8eaf6 0%, var(--accent-blue) 40%, var(--accent-purple) 60%, var(--accent-pink) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: titleShimmer 6s ease-in-out infinite; background-size: 200% 200%;">✨ Made by Sasi ✨</div>
+            <div class="tech-badges">
+                <span class="tech-badge">TensorFlow 2.20</span>
+                <span class="tech-badge">Residual Blocks</span>
+                <span class="tech-badge">SE Attention</span>
+                <span class="tech-badge">GradCAM</span>
+                <span class="tech-badge">Label Smoothing</span>
+                <span class="tech-badge">Cosine Annealing</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+    // ═══════════════════════════════════════════════════════════════════════
+    //  PARTICLE BACKGROUND
+    // ═══════════════════════════════════════════════════════════════════════
+    (function initParticles() {
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const PARTICLE_COUNT = 60;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.r = Math.random() * 2 + 0.5;
+                this.alpha = Math.random() * 0.3 + 0.05;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(99, 102, 241, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+
+            // Draw connections
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(99, 102, 241, ${0.06 * (1 - dist / 150)})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  DRAWING CANVAS
+    // ═══════════════════════════════════════════════════════════════════════
+    const drawCanvas = document.getElementById('draw-canvas');
+    const drawCtx = drawCanvas.getContext('2d');
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+    let brushSize = 18;
+
+    // Init canvas
+    drawCtx.fillStyle = '#0a0a14';
+    drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+    drawCtx.lineCap = 'round';
+    drawCtx.lineJoin = 'round';
+
+    // Brush size control
+    const brushSlider = document.getElementById('brush-size');
+    const brushDot = document.getElementById('brush-dot');
+    function updateBrush() {
+        brushSize = parseInt(brushSlider.value);
+        brushDot.style.width = Math.min(brushSize, 24) + 'px';
+        brushDot.style.height = Math.min(brushSize, 24) + 'px';
+    }
+    brushSlider.addEventListener('input', updateBrush);
+    updateBrush();
+
+    function getPos(e) {
+        const rect = drawCanvas.getBoundingClientRect();
+        const scaleX = drawCanvas.width / rect.width;
+        const scaleY = drawCanvas.height / rect.height;
+        if (e.touches && e.touches.length > 0) {
+            return {
+                x: (e.touches[0].clientX - rect.left) * scaleX,
+                y: (e.touches[0].clientY - rect.top) * scaleY
+            };
+        }
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
+    function startDraw(e) {
+        e.preventDefault();
+        drawing = true;
+        drawCanvas.classList.add('drawing');
+        const pos = getPos(e);
+        lastX = pos.x; lastY = pos.y;
+        // Draw a dot for single clicks
+        drawCtx.beginPath();
+        drawCtx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2);
+        drawCtx.fillStyle = '#ffffff';
+        drawCtx.fill();
+    }
+
+    function doDraw(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        drawCtx.beginPath();
+        drawCtx.moveTo(lastX, lastY);
+        drawCtx.lineTo(pos.x, pos.y);
+        drawCtx.strokeStyle = '#ffffff';
+        drawCtx.lineWidth = brushSize;
+        drawCtx.stroke();
+        lastX = pos.x; lastY = pos.y;
+    }
+
+    function stopDraw(e) {
+        if (e) e.preventDefault();
+        drawing = false;
+        drawCanvas.classList.remove('drawing');
+    }
+
+    // Mouse events
+    drawCanvas.addEventListener('mousedown', startDraw);
+    drawCanvas.addEventListener('mousemove', doDraw);
+    drawCanvas.addEventListener('mouseup', stopDraw);
+    drawCanvas.addEventListener('mouseleave', stopDraw);
+    // Touch events
+    drawCanvas.addEventListener('touchstart', startDraw, { passive: false });
+    drawCanvas.addEventListener('touchmove', doDraw, { passive: false });
+    drawCanvas.addEventListener('touchend', stopDraw);
+
+    function clearCanvas() {
+        drawCtx.fillStyle = '#0a0a14';
+        drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+        // Reset prediction UI
+        document.getElementById('prediction-area').innerHTML = `
+            <div class="prediction-placeholder">
+                <div class="placeholder-icon">✍️</div>
+                <p class="placeholder-text">Draw a digit on the canvas<br>and click <strong>Recognize</strong></p>
+            </div>`;
+        renderConfidenceBars(null);
+        resetNNVisualization();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  PREDICTION
+    // ═══════════════════════════════════════════════════════════════════════
+    async function predictDigit() {
+        const btn = document.getElementById('predict-btn');
+        btn.classList.add('loading');
+        btn.innerHTML = '<div class="spinner"></div> <span>Analyzing...</span>';
+
+        try {
+            const imageData = drawCanvas.toDataURL('image/png');
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData }),
+            });
+
+            const data = await response.json();
+
+            if (data.error === 'blank') {
+                document.getElementById('prediction-area').innerHTML = `
+                    <div class="prediction-placeholder">
+                        <div class="placeholder-icon">✍️</div>
+                        <p class="placeholder-text">Canvas is empty!<br>Please draw a digit first.</p>
+                    </div>`;
+                renderConfidenceBars(null);
+                return;
+            }
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            renderPrediction(data);
+            // Show confidence bars for the first digit (or single digit)
+            renderConfidenceBars(data.confidences, data.prediction);
+            animateNNVisualization(data.prediction, data.confidence);
+
+        } catch (err) {
+            document.getElementById('prediction-area').innerHTML = `
+                <div class="prediction-placeholder">
+                    <div class="placeholder-icon">⚠️</div>
+                    <p class="placeholder-text">Error: ${err.message}</p>
+                </div>`;
+        } finally {
+            btn.classList.remove('loading');
+            btn.innerHTML = '<span>🔍</span> <span>Recognize</span>';
+        }
+    }
+
+    function renderPrediction(data) {
+        const digitCount = data.digit_count || 1;
+
+        if (digitCount > 1) {
+            // ── Multi-digit rendering ────────────────────────────────
+            const avgConf = data.avg_confidence || 0;
+            const confColor = avgConf > 90 ? 'var(--accent-green)' :
+                              avgConf > 70 ? 'var(--accent-amber)' : 'var(--accent-pink)';
+
+            const posLabels = ['1st', '2nd', '3rd'];
+            let cardsHtml = data.digits.map((d, i) => {
+                const dConfColor = d.confidence > 90 ? 'var(--accent-green)' :
+                                   d.confidence > 70 ? 'var(--accent-amber)' : 'var(--accent-pink)';
+                return `<div class="digit-card">
+                    <div class="digit-card-pos">${posLabels[i] || (i+1)+'th'} Digit</div>
+                    <div class="digit-card-value">${d.digit}</div>
+                    <div class="digit-card-conf" style="color:${dConfColor}">${d.confidence.toFixed(1)}%</div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('prediction-area').innerHTML = `
+                <div class="multi-digit-hero">
+                    <div class="multi-digit-number">${data.combined_number}</div>
+                    <div class="prediction-confidence" style="color:${confColor}">${avgConf.toFixed(1)}% avg</div>
+                    <div class="multi-digit-label">${digitCount} digits detected</div>
+                    <div class="digit-cards-row">${cardsHtml}</div>
+                </div>`;
+
+            // Show confidence bars for the highest-confidence digit
+            let bestDigit = data.digits.reduce((a, b) => a.confidence > b.confidence ? a : b);
+            renderConfidenceBars(bestDigit.confidences, bestDigit.digit);
+        } else {
+            // ── Single-digit rendering (original) ───────────────────
+            const confColor = data.confidence > 90 ? 'var(--accent-green)' :
+                              data.confidence > 70 ? 'var(--accent-amber)' : 'var(--accent-pink)';
+
+            let top3Html = '';
+            if (data.top3) {
+                top3Html = data.top3.map((item, i) => {
+                    const medals = ['🥇', '🥈', '🥉'];
+                    return `<div class="top3-chip">
+                        ${medals[i]} <strong>${item.digit}</strong>
+                        <span style="opacity:0.7">${item.confidence.toFixed(1)}%</span>
+                    </div>`;
+                }).join('');
+            }
+
+            document.getElementById('prediction-area').innerHTML = `
+                <div class="prediction-hero">
+                    <div class="prediction-digit-wrapper">
+                        <div class="prediction-digit-ring"></div>
+                        <div class="prediction-digit-ring ring-2"></div>
+                        <div class="prediction-digit">${data.prediction}</div>
+                    </div>
+                    <div class="prediction-confidence" style="color:${confColor}">${data.confidence.toFixed(1)}%</div>
+                    <div class="prediction-label">Confidence</div>
+                    <div class="top3-row">${top3Html}</div>
+                </div>`;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  CONFIDENCE BARS
+    // ═══════════════════════════════════════════════════════════════════════
+    function renderConfidenceBars(confidences, topDigit) {
+        const container = document.getElementById('confidence-bars');
+        let html = '';
+        for (let i = 0; i <= 9; i++) {
+            const val = confidences ? parseFloat(confidences[i]) : 0;
+            const isTop = (i === topDigit);
+            html += `
+                <div class="conf-row">
+                    <span class="conf-digit ${isTop ? 'highlight' : ''}">${i}</span>
+                    <div class="conf-bar-track">
+                        <div class="conf-bar-fill ${isTop ? 'top' : 'other'}"
+                             style="width: ${val}%;"></div>
+                    </div>
+                    <span class="conf-value ${isTop ? 'highlight' : ''}">${val.toFixed(1)}%</span>
+                </div>`;
+        }
+        container.innerHTML = html;
+
+        // Animate bars from 0
+        if (confidences) {
+            const fills = container.querySelectorAll('.conf-bar-fill');
+            fills.forEach(f => {
+                const target = f.style.width;
+                f.style.width = '0%';
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => { f.style.width = target; });
+                });
+            });
+        }
+    }
+    // Initial empty bars
+    renderConfidenceBars(null, -1);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  NEURAL NETWORK VISUALIZATION
+    // ═══════════════════════════════════════════════════════════════════════
+    const nnCanvas = document.getElementById('nn-canvas');
+    const nnCtx = nnCanvas.getContext('2d');
+    const NN_LAYERS = [
+        { label: 'Input\n28×28', nodes: 8, color: '#6366f1' },
+        { label: 'Conv\n3×3', nodes: 6, color: '#8b5cf6' },
+        { label: 'Res\nBlock', nodes: 6, color: '#a855f7' },
+        { label: 'SE\nAttn', nodes: 5, color: '#d946ef' },
+        { label: 'Res\nBlock', nodes: 5, color: '#ec4899' },
+        { label: 'SE\nAttn', nodes: 4, color: '#f43f5e' },
+        { label: 'GAP', nodes: 3, color: '#f59e0b' },
+        { label: 'Dense\n256', nodes: 5, color: '#22d3ee' },
+        { label: 'Dense\n128', nodes: 4, color: '#10b981' },
+        { label: 'Output\n0\u20139', nodes: 3, color: '#2ea043' },
+    ];
+    let nnActivations = new Array(NN_LAYERS.length).fill(0);
+    let nnAnimFrame = null;
+
+    function drawNN(activations) {
+        const W = nnCanvas.width, H = nnCanvas.height;
+        nnCtx.clearRect(0, 0, W, H);
+
+        const layerSpacing = W / (NN_LAYERS.length + 1);
+        const nodePositions = [];
+
+        // Compute node positions
+        NN_LAYERS.forEach((layer, li) => {
+            const x = layerSpacing * (li + 1);
+            const nodeSpacing = (H - 60) / (layer.nodes + 1);
+            const positions = [];
+            for (let ni = 0; ni < layer.nodes; ni++) {
+                positions.push({ x, y: 30 + nodeSpacing * (ni + 1) });
+            }
+            nodePositions.push(positions);
+        });
+
+        // Draw connections
+        for (let li = 0; li < nodePositions.length - 1; li++) {
+            const a = activations[li] || 0;
+            nodePositions[li].forEach(n1 => {
+                nodePositions[li + 1].forEach(n2 => {
+                    nnCtx.beginPath();
+                    nnCtx.moveTo(n1.x, n1.y);
+                    nnCtx.lineTo(n2.x, n2.y);
+                    const alpha = 0.03 + a * 0.12;
+                    nnCtx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
+                    nnCtx.lineWidth = 0.5 + a * 1;
+                    nnCtx.stroke();
+                });
+            });
+        }
+
+        // Draw nodes
+        NN_LAYERS.forEach((layer, li) => {
+            const a = activations[li] || 0;
+            nodePositions[li].forEach(pos => {
+                const r = 5 + a * 4;
+                // Glow
+                if (a > 0.1) {
+                    const grd = nnCtx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, r * 3);
+                    grd.addColorStop(0, layer.color + '40');
+                    grd.addColorStop(1, 'transparent');
+                    nnCtx.fillStyle = grd;
+                    nnCtx.fillRect(pos.x - r * 3, pos.y - r * 3, r * 6, r * 6);
+                }
+                // Node
+                nnCtx.beginPath();
+                nnCtx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+                nnCtx.fillStyle = layer.color + (a > 0.3 ? 'cc' : '55');
+                nnCtx.fill();
+                nnCtx.strokeStyle = layer.color + '88';
+                nnCtx.lineWidth = 1;
+                nnCtx.stroke();
+            });
+            // Label
+            const x = nodePositions[li][0].x;
+            nnCtx.fillStyle = '#8b8fad';
+            nnCtx.font = '600 11px Inter, sans-serif';
+            nnCtx.textAlign = 'center';
+            const lines = layer.label.split('\n');
+            lines.forEach((line, i) => {
+                nnCtx.fillText(line, x, H - 28 + i * 13 - (lines.length - 1) * 6);
+            });
+        });
+    }
+
+    function resetNNVisualization() {
+        nnActivations = new Array(NN_LAYERS.length).fill(0);
+        if (nnAnimFrame) cancelAnimationFrame(nnAnimFrame);
+        drawNN(nnActivations);
+    }
+
+    function animateNNVisualization(digit, confidence) {
+        if (nnAnimFrame) cancelAnimationFrame(nnAnimFrame);
+
+        let step = 0;
+        const totalSteps = 60;
+
+        function animate() {
+            step++;
+            const progress = step / totalSteps;
+
+            for (let li = 0; li < NN_LAYERS.length; li++) {
+                const layerProgress = Math.max(0, Math.min(1,
+                    (progress * NN_LAYERS.length - li) * 2));
+                nnActivations[li] = layerProgress * (confidence / 100);
+            }
+
+            drawNN(nnActivations);
+
+            if (step < totalSteps) {
+                nnAnimFrame = requestAnimationFrame(animate);
+            }
+        }
+        animate();
+    }
+
+    // Init NN
+    resetNNVisualization();
+
+    // Resize NN canvas on window resize
+    function resizeNNCanvas() {
+        const container = nnCanvas.parentElement;
+        const w = container.clientWidth - 40;
+        if (w > 0 && w !== nnCanvas.width) {
+            nnCanvas.width = Math.min(w, 1100);
+            nnCanvas.height = Math.round(nnCanvas.width * 240 / 1100);
+            drawNN(nnActivations);
+        }
+    }
+    window.addEventListener('resize', resizeNNCanvas);
+    setTimeout(resizeNNCanvas, 100);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); predictDigit(); }
+        if (e.key === 'Escape') { e.preventDefault(); clearCanvas(); }
+    });
+    </script>
+</body>
+</html>
